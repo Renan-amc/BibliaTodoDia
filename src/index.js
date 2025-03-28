@@ -12,27 +12,47 @@ async function main() {
 }
 
 //Criando um Model e o {} seria o schema que eu crio na hora - mongoose
-const BibleScholar = mongoose.model('BibleScholar', {
-    name: String,
-    age: Number,
-    passage: [{Chapter: String, Verse: Number}]
+const Passages = mongoose.model('Passages',{
+  passage: String,
+  chapter: Number,
+  verse: Number,
+  description: String
+})
+
+const User = mongoose.model('User',{
+  name: { type: String, required: true },
+  passages: [{ type:mongoose.Schema.Types.ObjectId, ref:'Passages' }]
 });
+
 
 //Fazendo requisição com express 
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
+//Adicionar usuario
 app.post('/', async (req, res) => {
-    const bibleScholar = new BibleScholar({
-        name: req.body.name,
-        passage: [{Chapter: req.body.chapter, Verse: req.body.verse}]
-    })
+    const passagesData = req.body.passages.map(passageData => {
+      return new Passages({
+        passage: passageData.passage,
+        chapter: passageData.chapter,
+        verse: passageData.verse,
+        description: passageData.description
+      });
+    });
 
-    await bibleScholar.save();
-    res.send(bibleScholar);
+    const savedPassages = await Passages.insertMany(passagesData);
+    
+    const user = new User({
+      name: req.body.name,
+      passages: savedPassages.map(p => p._id)
+  });
+
+    await user.save();
+    res.send(user);
 })
 
+
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  console.log("Funcionando!")
 })
